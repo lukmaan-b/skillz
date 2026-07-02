@@ -119,9 +119,21 @@ extra bugs, and extra code to maintain.
 - Expensive initial values use lazy init: `useState(() => buildInitialState())`.
 
 **Memoization**
-- No reflexive `useMemo`/`useCallback`. Use them only when the computation
-  is actually expensive, or referential stability is required (a hook
-  dependency, or a prop passed to a `React.memo` child).
+- `useMemo`/`useCallback` exist for two distinct reasons — treat both as
+  legitimate, not as a fallback:
+  - **Expensive computation**: avoid redoing real work every render.
+  - **Referential stability**: keep the same object/function identity across
+    renders. This matters whenever something downstream compares by
+    reference — a prop passed to a `React.memo` child, a value in another
+    hook's dependency array, or a context value (an unmemoized object/array
+    literal passed to `useContext`/context `value` re-renders every
+    consumer). Skipping memoization here isn't a micro-optimization tradeoff,
+    it's a correctness issue: it silently defeats `React.memo`, causes
+    dependency-array effects to re-fire, or triggers full context re-renders.
+  - Don't memoize a value that's only ever consumed by plain JSX with no
+    memoized children, no dependency array, and no context — there's
+    nothing there for referential stability to protect, so it's pure
+    overhead.
 
 **Lists**
 - Keys come from stable data ids, never the array index when items can be
