@@ -1,6 +1,6 @@
 ---
 name: react-component-creator
-description: Guidance for writing and structuring React code — components, hooks, pages, and features — with a strong bias toward small files, extracted hooks/utils, and readable JSX. Use this skill whenever the user asks to create, build, scaffold, or add a new React component, page, form, modal, or feature, or when editing an existing React component that is growing large or messy. Also apply it when reviewing or refactoring React code for structure, even if the user didn't explicitly ask for a "new" component.
+description: Guidance for writing and structuring modern React code — components, hooks, effects, state, and features — with a strong bias toward small files, extracted hooks/utils, readable JSX, minimal useEffect usage, and correct state/memoization patterns. Use this skill whenever the user asks to create, build, scaffold, or add a new React component, page, form, modal, hook, or feature; whenever a useEffect, useState, useMemo, or useCallback is being written or reviewed; or when editing existing React code that is growing large, messy, or effect-heavy. Also apply it when reviewing or refactoring React code for structure or effect correctness, even if the user didn't explicitly ask for a "new" component.
 ---
 
 # React Component Creator
@@ -74,6 +74,59 @@ inline:
   rendered (e.g. avoid `<Modal isConfirm={true} />` branching internally —
   prefer distinct components or `children`/slots).
 
+## Effects and state (modern React)
+
+Avoid `useEffect` by default. An effect is only for synchronizing with
+something *outside* React: subscriptions, DOM APIs, analytics, third-party
+widgets. Reaching for an effect for anything else adds an extra render pass,
+extra bugs, and extra code to maintain.
+
+- Never compute derived data in an effect — derive it during render:
+
+  ```jsx
+  // ❌ bad
+  const [filtered, setFiltered] = useState([]);
+  useEffect(() => { setFiltered(items.filter(matches)); }, [items, matches]);
+
+  // ✅ good
+  const filtered = items.filter(matches); // useMemo only if measurably expensive
+  ```
+- Never put event logic in an effect. If it happens *because the user did
+  something*, it belongs in the event handler, not in an effect reacting to
+  the state that handler set.
+- Never chain effects (effect sets state → triggers another effect).
+  Restructure into one handler or a derived value instead.
+- Never mirror props into state via an effect. Derive from the prop, or
+  reset the whole component by changing its `key`.
+- To reset state when an identity changes (e.g. `userId`), use a `key` prop
+  on the component, not an effect that resets state on change.
+
+**When an effect is genuinely needed**
+- Always return a cleanup function for subscriptions and listeners.
+- Fetches inside effects must handle race conditions (`AbortController` or
+  an `ignore` flag checked in cleanup) — better yet, use the project's data
+  library (React Query / SWR) instead of hand-rolled fetching.
+- Never disable or lie to the exhaustive-deps lint rule; fix the structure
+  (e.g. move a value inside the effect, or extract a stable primitive)
+  instead of suppressing the warning.
+- One concern per effect — don't merge unrelated synchronization into a
+  single effect just because they run at similar times.
+
+**State structure**
+- Store the minimal source of truth; anything computable from it is derived
+  at render time, not kept in separate state.
+- Values that don't affect what's rendered go in a ref, not state.
+- Expensive initial values use lazy init: `useState(() => buildInitialState())`.
+
+**Memoization**
+- No reflexive `useMemo`/`useCallback`. Use them only when the computation
+  is actually expensive, or referential stability is required (a hook
+  dependency, or a prop passed to a `React.memo` child).
+
+**Lists**
+- Keys come from stable data ids, never the array index when items can be
+  added, removed, or reordered.
+
 ## Example: applying this to a request
 
 If asked for "a user profile card that fetches the user and shows a follow
@@ -98,6 +151,8 @@ of JSX nesting.
 When asked to review or refactor React code rather than write new code,
 apply the same rules as a checklist: file length, one component per file,
 extracted hooks/utils/constants, JSX nesting depth, ternary usage, inline
-handlers, prop count, and orchestration/rendering separation. Point out
-concrete violations with file/line references and propose the split rather
-than just describing the problem abstractly.
+handlers, prop count, orchestration/rendering separation, unnecessary
+effects (derived state, mirrored props, chained effects), missing effect
+cleanup/race-condition handling, reflexive memoization, and array-index
+keys. Point out concrete violations with file/line references and propose
+the fix rather than just describing the problem abstractly.
