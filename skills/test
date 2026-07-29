@@ -1,404 +1,409 @@
-# Task: fix a contentEditable inline-styled input
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 
-You are working in an existing React codebase. Somewhere in it there is an editable
-field that renders styled runs of text inside a `contentEditable` element — for
-example a price field where part of the number is rendered larger or bolder than
-the rest. The current implementation writes the element's `innerHTML` on every
-render and reacts to the `input` event.
+/* =====================================================================
+   price.js — pure. No DOM, no React. This is the file you unit-test.
+   ===================================================================== */
 
-That approach has a set of specific, reproducible defects. Your job is to fix
-them. Names, file layout, and component structure in this codebase will not match
-the examples below — the code sketches are illustrative of the *shape* of each
-fix, not literal patches. Locate the equivalent constructs and adapt.
+// Japanese/Chinese IMEs in full-width mode emit ０-９ and ．/。 for the period
+// key. Fold to ASCII rather than rejecting, or a Tokyo desk can't type at all.
+const toAscii = (s) =>
+  s
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/[．。｡，､]/g, ".");
 
----
-
-## Step 0 — audit before changing anything
-
-Report what you find before editing:
-
-1. The element carrying `contentEditable` — its tag, its `role`, whether it is a
-   `<button>`.
-2. Every place the editable subtree's DOM is written: `innerHTML`,
-   `dangerouslySetInnerHTML`, `textContent`, `insertAdjacentHTML`,
-   `document.execCommand`, direct `appendChild` / `removeChild`.
-3. Every event handler on that element: `input`, `keydown`, `keypress`, `paste`,
-   `blur`, `composition*`.
-4. Whether the value lives in React state, a ref, the DOM, or more than one of
-   those.
-5. Any existing tests covering it.
-
----
-
-## The governing principle
-
-**Exactly one writer owns the editable subtree.** React writes it. The browser
-writes it only while an IME composition is active, and that window is explicitly
-opened and closed.
-
-Every defect below is a violation of that rule. Apply the fixes in order — each
-one assumes the previous is in place.
-
----
-
-## Fix 1 — stop writing innerHTML on render
-
-**Symptoms:** caret jumps to the start or end while typing; selection collapses
-on every keystroke; native undo (Cmd/Ctrl+Z) does nothing; on Android characters
-duplicate or vanish; the IME candidate popup closes mid-word.
-
-**Cause:** assigning `innerHTML` destroys and recreates the text nodes that the
-browser's selection is anchored to. The browser has no way to re-anchor, so the
-caret is lost. If it happens during composition, the IME's composition node is
-destroyed underneath it and the input method breaks outright.
-
-**Fix:** render the styled runs as ordinary JSX children driven by state.
-
-```jsx
-// before
-useEffect(() => { el.current.innerHTML = buildHtml(value); });
-
-// after
-const parts = useMemo(() => splitValue(value), [value]);
-return (
-  <div ref={el} contentEditable suppressContentEditableWarning ...>
-    <span className="run-a">{parts.a}</span>
-    <span className="run-b">{parts.b}</span>
-  </div>
-);
-```
-
-Make the split function **total** — defined for every intermediate string the
-user can type through, including `""`, `"1"`, and `"1."`. If it can throw or
-return a fallback for a partially typed value, the styling will visibly flip to
-plain mid-typing. Build it out of slices so every branch is defined:
-
-```js
-function splitValue(value) {
-  // no validation, no early return, no fallback branch
-  return { a: value.slice(0, n), b: value.slice(n) };
+export function sanitize(raw, maxDecimals) {
+  let s = toAscii(raw).replace(/[^\d.]/g, "");
+  const dot = s.indexOf(".");
+  if (dot !== -1) {
+    const int = s.slice(0, dot);
+    const dec = s.slice(dot + 1).replace(/\./g, "").slice(0, maxDecimals);
+    s = int + "." + dec;
+  }
+  return s.slice(0, 24);
 }
-```
 
----
-
-## Fix 2 — intercept `beforeinput`, not `input`
-
-**Symptoms:** invalid characters appear briefly then disappear; pasted rich text
-injects foreign markup or nested elements; select-all + Delete removes the styled
-child elements entirely and subsequent renders throw
-`NotFoundError: Failed to execute 'removeChild'`.
-
-**Cause:** `input` fires *after* the browser has already mutated the DOM, and it
-is not cancelable. Once the browser has split a text node, inserted a `<br>`, or
-deleted your child elements, React's tree no longer describes the real DOM. The
-next reconcile writes to the wrong node or to a detached one.
-
-**Fix:** handle `beforeinput`, call `preventDefault()`, compute the next value in
-JavaScript, and let React render it. The browser then never mutates the subtree.
-
-```js
-function onBeforeInput(e) {
-  if (isComposing.current || e.inputType === "insertCompositionText") return;
-  e.preventDefault();
-  const sel = readSelection(el.current);           // logical offsets, see Fix 5
-  const next = reduceInput(e.inputType, e.data, value, sel);
-  if (next) { pendingCaret.current = next.caret; setValue(next.value); }
+/** Total split — defined for "", "1", "1." and every other intermediate. */
+export function segment(value, pipDecimal) {
+  const dot = value.indexOf(".");
+  const int = dot === -1 ? value : value.slice(0, dot);
+  const dec = dot === -1 ? "" : value.slice(dot + 1);
+  return {
+    big: int + (dot === -1 ? "" : ".") + dec.slice(0, pipDecimal - 2),
+    pips: dec.slice(pipDecimal - 2, pipDecimal),
+    frac: dec.slice(pipDecimal),
+  };
 }
-```
 
-`reduceInput` must be a **pure function** — no DOM, no React — mapping
-`(inputType, data, value, selection)` to `{ value, caret }` or `null` to reject.
-Extract it to its own module and unit-test it there. Handle at minimum:
+// Integer pipettes: 1.0945 + 0.0001 is not 1.0946 in float.
+export const toPipettes = (v, d) => Math.round((Number(v) || 0) * 10 ** d);
+export const fromPipettes = (n, d) => (Math.max(0, n) / 10 ** d).toFixed(d);
+export const stepBy = (value, decimals, delta) =>
+  fromPipettes(toPipettes(value, decimals) + delta, decimals);
 
-- `insertText`, `insertReplacementText`, `insertFromDrop` — splice `data` over
-  the selection
-- `deleteContentBackward`, `deleteWordBackward`, `deleteSoftLineBackward`
-- `deleteContentForward`, `deleteWordForward`
-- `deleteByCut`, `deleteContent`
-- **default: return `null`** — this rejects formatting commands (Cmd+B),
-  paragraph insertion, and history operations for free
+/**
+ * Splice `insert` over [start, end) and return the sanitized result plus the
+ * caret position. Pure — this is the entire editing model.
+ */
+export function spliceValue(value, { start, end }, insert, maxDecimals) {
+  const next = sanitize(value.slice(0, start) + insert + value.slice(end), maxDecimals);
+  const caret = Math.min(
+    sanitize(value.slice(0, start) + insert, maxDecimals).length,
+    next.length
+  );
+  return { value: next, caret };
+}
 
-Handling `deleteWordBackward` as one case is the point of using `inputType`: it
-arrives identically from Option+Delete on macOS, Ctrl+Backspace on Windows, a
-context menu, and voice dictation. Deriving that from `keydown` means
-reimplementing platform word-boundary rules, and `keydown` does not fire usefully
-for autocorrect, swipe-typing, or menu-driven paste at all.
+/** Map a native `beforeinput` event to the next value. null = reject. */
+export function reduceInput(inputType, data, value, sel, maxDecimals) {
+  const { start, end } = sel;
+  const collapsed = start === end;
 
-**React caveat:** bind this with a native `addEventListener`, not the `onBeforeInput`
-JSX prop. React's `onBeforeInput` is a legacy `textInput` shim and does not
-expose `inputType`, which is the entire reason for using the event. Wrap it in a
-small hook so it stays contained:
+  switch (inputType) {
+    case "insertText":
+    case "insertReplacementText":
+    case "insertFromDrop":
+      return spliceValue(value, sel, data || "", maxDecimals);
 
-```js
+    case "deleteContentBackward":
+    case "deleteWordBackward":
+    case "deleteSoftLineBackward":
+      if (!collapsed) return spliceValue(value, sel, "", maxDecimals);
+      if (start === 0) return null;
+      return spliceValue(value, { start: start - 1, end }, "", maxDecimals);
+
+    case "deleteContentForward":
+    case "deleteWordForward":
+      if (!collapsed) return spliceValue(value, sel, "", maxDecimals);
+      if (start >= value.length) return null;
+      return spliceValue(value, { start, end: end + 1 }, "", maxDecimals);
+
+    case "deleteByCut":
+    case "deleteContent":
+      return spliceValue(value, sel, "", maxDecimals);
+
+    // Everything else — formatting, paragraphs, history — is rejected.
+    default:
+      return null;
+  }
+}
+
+/* =====================================================================
+   selection.js — pure DOM helpers. Logical offsets into textContent.
+   ===================================================================== */
+
+export function readSelection(el) {
+  const sel = document.getSelection();
+  if (!sel || sel.rangeCount === 0) return null;
+  const range = sel.getRangeAt(0);
+  if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) return null;
+  const probe = range.cloneRange();
+  probe.selectNodeContents(el);
+  probe.setEnd(range.startContainer, range.startOffset);
+  const start = probe.toString().length;
+  return { start, end: start + range.toString().length };
+}
+
+export function writeCaret(el, offset) {
+  const sel = document.getSelection();
+  if (!sel) return;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  let left = offset;
+  let node;
+  let last = null;
+  while ((node = walker.nextNode())) {
+    if (left <= node.nodeValue.length) {
+      range.setStart(node, left);
+      break;
+    }
+    left -= node.nodeValue.length;
+    last = node;
+  }
+  if (!node) {
+    if (last) range.setStart(last, last.nodeValue.length);
+    else range.setStart(el, 0);
+  }
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+/* =====================================================================
+   hooks
+   ===================================================================== */
+
+/** Standard controlled/uncontrolled contract, like any other input. */
+function useControllableState({ value, defaultValue, onChange }) {
+  const [inner, setInner] = useState(defaultValue ?? "");
+  const controlled = value !== undefined;
+  const onChangeRef = useRef(onChange);
+  useLayoutEffect(() => {
+    onChangeRef.current = onChange;
+  });
+
+  const set = useCallback(
+    (next) => {
+      if (!controlled) setInner(next);
+      onChangeRef.current?.(next);
+    },
+    [controlled]
+  );
+
+  return [controlled ? value : inner, set];
+}
+
+/**
+ * The one escape hatch. React's `onBeforeInput` is a legacy `textInput` shim
+ * and doesn't expose `inputType`, which is the entire point of the event.
+ */
 function useBeforeInput(ref, handler) {
   const cb = useRef(handler);
-  useLayoutEffect(() => { cb.current = handler; });
+  useLayoutEffect(() => {
+    cb.current = handler;
+  });
   useEffect(() => {
-    const el = ref.current; if (!el) return;
+    const el = ref.current;
+    if (!el) return;
     const fn = (e) => cb.current(e);
     el.addEventListener("beforeinput", fn);
     return () => el.removeEventListener("beforeinput", fn);
   }, [ref]);
 }
-```
 
----
+/* =====================================================================
+   PipPriceInput.jsx
+   ===================================================================== */
 
-## Fix 3 — the two double-fire bugs
+export const PipPriceInput = forwardRef(function PipPriceInput(
+  {
+    value: valueProp,
+    defaultValue,
+    onChange,
+    onCommit,
+    pipDecimal = 4, // 4 for EUR/USD, 2 for USD/JPY — from instrument metadata
+    pipetteDigits = 1,
+    disabled = false,
+    "aria-label": ariaLabel = "Limit price",
+  },
+  forwardedRef
+) {
+  const elRef = useRef(null);
+  const caretRef = useRef(null);
+  const composingRef = useRef(false);
+  const frameRef = useRef(0);
 
-These are separate bugs with separate causes. Both must be fixed.
+  // Composition is the only time the browser writes to this subtree, so it is
+  // the only time React's tree goes stale. Bumping this remounts the spans.
+  const [revision, resync] = useReducer((n) => n + 1, 0);
 
-### 3a — Enter fires twice: IME confirm *and* submit
-
-**Reproduce:** switch the OS input source to Japanese (hiragana), Chinese
-(Pinyin), or Korean. Type into the field. A candidate window appears. Press Enter
-once to confirm the candidate.
-
-**What happens:** the IME consumes Enter to confirm the candidate, *and* the
-`keydown` handler also sees Enter and runs its submit path. One keypress both
-confirms the text and fires the action. In an order-entry context this sends an
-order the user was still typing.
-
-**Cause:** `keydown` fires for keys the IME is consuming. There is no way to tell
-from `e.key` alone.
-
-**Fix:** early-return from **every** key handler while composing.
-
-```js
-function onKeyDown(e) {
-  if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-  // ... Enter, Escape, Arrow handling below this line only
-}
-```
-
-Both checks are required. `isComposing` is the modern signal; `keyCode === 229`
-is the legacy sentinel still emitted by older Safari and Android WebViews, where
-`isComposing` is unreliable. Apply this guard to Escape as well — Escape cancels
-an IME composition, and it must not also close the dialog or ticket.
-
-Audit for the same bug in ancestor components: a `keydown` listener on a
-surrounding form, dialog, or hotkey provider will see the same Enter bubble up
-and needs the identical guard, or `stopPropagation()` while composing.
-
-### 3b — the commit runs twice: `compositionend` vs `input` ordering
-
-**Reproduce:** compose a word and confirm it, on both Chrome and Safari, and log
-the order of `input` and `compositionend`.
-
-**What happens:** browsers disagree. The spec order for the final commit is
-`compositionend` then `input`; older WebKit and Blink fired `input` first. Code
-that commits in both handlers either commits twice, or commits once against text
-the browser has not finished writing — producing a stale or truncated value.
-
-**Fix:** one commit path, entered from `compositionend` only, deferred one frame,
-guarded, and idempotent.
-
-```js
-function onCompositionStart() { isComposing.current = true; }
-
-function onCompositionEnd() {
-  isComposing.current = false;
-  cancelAnimationFrame(frame.current);
-  frame.current = requestAnimationFrame(() => {
-    if (isComposing.current) return;       // a new composition already started
-    commitFromDom();
+  const decimals = pipDecimal + pipetteDigits;
+  const [value, setValue] = useControllableState({
+    value: valueProp,
+    defaultValue,
+    onChange,
   });
-}
-```
+  const parts = useMemo(() => segment(value, pipDecimal), [value, pipDecimal]);
 
-The deferral does two jobs: it makes the handler order irrelevant, and it avoids
-mutating the DOM synchronously inside `compositionend`, which upsets GBoard on
-Android. The `input` handler does nothing while composing, so it cannot race.
+  const apply = useCallback(
+    (result) => {
+      if (!result) return;
+      caretRef.current = result.caret;
+      setValue(result.value);
+    },
+    [setValue]
+  );
 
----
+  /* --- editing: React is the only writer, except during composition ----- */
 
-## Fix 4 — composition is broader than `insertCompositionText`
+  useBeforeInput(elRef, (e) => {
+    // insertCompositionText is not cancelable; let the IME own the DOM.
+    if (composingRef.current || e.inputType === "insertCompositionText") return;
 
-**Symptom:** backspacing inside a half-composed word wipes the whole field.
+    e.preventDefault();
+    const sel = readSelection(elRef.current);
+    if (!sel) return;
+    apply(reduceInput(e.inputType, e.data, value, sel, decimals));
+  });
 
-**Cause:** while composing, IMEs emit ordinary `deleteContentBackward` events for
-edits *within the composition buffer*. If you only skip `insertCompositionText`,
-you intercept that delete and splice it against your `value` — which does not
-contain the composing text at all.
+  const handleCompositionStart = () => {
+    composingRef.current = true;
+  };
 
-**Fix:** gate on the `isComposing` ref, not on the inputType. The ref means
-something stronger than "this event is composition text": it means *my value
-model is not authoritative right now, intercept nothing.*
+  const handleCompositionEnd = () => {
+    composingRef.current = false;
+    // Browsers disagree on whether `input` fires before or after
+    // `compositionend`. Deferring a frame makes this run exactly once, after
+    // the browser has torn down its composition node.
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(() => {
+      const el = elRef.current;
+      if (!el || composingRef.current) return;
+      const sel = readSelection(el);
+      const raw = el.textContent;
+      const next = sanitize(raw, decimals);
+      caretRef.current = sel
+        ? Math.min(sanitize(raw.slice(0, sel.start), decimals).length, next.length)
+        : next.length;
+      resync(); // React's tree is stale — force it to re-own the spans
+      setValue(next);
+    });
+  };
 
-Because the browser wrote characters React never rendered, `compositionend` is
-the one place the component reads the DOM as truth:
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const sel = readSelection(elRef.current);
+    if (!sel) return;
+    apply(spliceValue(value, sel, e.clipboardData.getData("text/plain"), decimals));
+  };
 
-```js
-function commitFromDom() {
-  const raw = el.current.textContent;
-  const next = sanitize(raw);
-  pendingCaret.current = /* offset mapped through sanitize */;
-  resync();                 // see Fix 6 — React's tree is stale
-  setValue(next);
-}
-```
+  const handleKeyDown = (e) => {
+    // Enter confirms an IME candidate. Reading it as "submit" here would
+    // confirm the candidate and fire the order in one keystroke. keyCode 229
+    // is the pre-`isComposing` signal from older Safari and Android WebViews.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
 
-This is not a CJK-only path. GBoard on Android composes ordinary Latin typing, so
-on Android `compositionend` can be the *primary* input route. Setting
-`inputMode="decimal"` on a numeric field usually surfaces a keypad that avoids
-composition, but treat that as a mitigation, not a guarantee.
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onCommit?.(value);
+      return;
+    }
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      const size = e.shiftKey ? 1 : 10 ** pipetteDigits; // shift = pipette
+      const next = stepBy(value, decimals, e.key === "ArrowUp" ? size : -size);
+      caretRef.current = next.length;
+      setValue(next);
+    }
+  };
 
-If the field is numeric, normalize full-width characters here. A Japanese IME
-left in full-width mode emits `０-９` and `．`/`。` for the period key, and a naive
-`[^\d.]` filter silently eats every character the user types:
+  const handleBlur = () => {
+    if (value === "") return;
+    const normalized = fromPipettes(toPipettes(value, decimals), decimals);
+    if (normalized !== value) setValue(normalized);
+    onCommit?.(normalized);
+  };
 
-```js
-const toAscii = (s) => s
-  .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
-  .replace(/[．。｡，､]/g, ".");
-```
+  /* --- caret restoration: the only DOM write React doesn't do ----------- */
 
----
+  useLayoutEffect(() => {
+    const el = elRef.current;
+    if (caretRef.current == null || !el) return;
+    if (document.activeElement === el) writeCaret(el, caretRef.current);
+    caretRef.current = null;
+  });
 
-## Fix 5 — caret preservation
+  useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
-React reconciles text but has no concept of selection, so restoring the caret is
-unavoidably imperative. Keep it to one place.
+  useImperativeHandle(
+    forwardedRef,
+    () => ({
+      focus: () => elRef.current?.focus(),
+      blur: () => elRef.current?.blur(),
+      get value() {
+        return value;
+      },
+    }),
+    [value]
+  );
 
-Store the intended caret as a **logical character offset** into the element's
-concatenated text — never as a node/offset pair, which does not survive a
-re-render. Restore it in `useLayoutEffect` so it lands before paint and never
-flickers.
-
-```js
-useLayoutEffect(() => {
-  if (pendingCaret.current == null) return;
-  if (document.activeElement === el.current) writeCaret(el.current, pendingCaret.current);
-  pendingCaret.current = null;
+  return (
+    <div
+      ref={elRef}
+      className="pip-input"
+      contentEditable={!disabled}
+      suppressContentEditableWarning
+      role="textbox"
+      aria-label={ariaLabel}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? -1 : 0}
+      inputMode="decimal"
+      enterKeyHint="done"
+      spellCheck={false}
+      autoCorrect="off"
+      autoCapitalize="off"
+      data-empty={value === "" || undefined}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
+      onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
+      onBlur={handleBlur}
+    >
+      <span key={`big-${revision}`} className="pip-big">
+        {parts.big}
+      </span>
+      <span key={`pips-${revision}`} className="pip-pips">
+        {parts.pips}
+      </span>
+      <span key={`frac-${revision}`} className="pip-frac">
+        {parts.frac}
+      </span>
+    </div>
+  );
 });
-```
 
-Read the offset with a Range probe (`probe.selectNodeContents(el)`,
-`probe.setEnd(range.startContainer, range.startOffset)`, then
-`probe.toString().length`) and write it by walking text nodes with a
-`TreeWalker`, subtracting each node's length until the offset falls inside one.
-Handle the empty case: a styled run with no text has no text node, so fall back
-to an element offset rather than throwing.
+/* =====================================================================
+   demo
+   ===================================================================== */
 
-Also handle paste explicitly — `preventDefault`, read `text/plain` only, splice
-it through the same pure reducer. Never let the browser insert clipboard HTML.
+const INSTRUMENTS = {
+  "EUR/USD": { pipDecimal: 4, mid: "1.09453" },
+  "USD/JPY": { pipDecimal: 2, mid: "156.784" },
+  "GBP/USD": { pipDecimal: 4, mid: "1.27219" },
+};
 
----
+export default function Demo() {
+  const [symbol, setSymbol] = useState("EUR/USD");
+  const cfg = INSTRUMENTS[symbol];
+  const [price, setPrice] = useState(cfg.mid);
+  const [log, setLog] = useState("—");
 
-## Fix 6 — resync React's tree after composition
+  return (
+    <div className="stage">
+      <style>{css}</style>
+      <div className="ticket">
+        <div className="ticket-head">
+          <span className="tag">LIMIT</span>
+          <div className="symbols">
+            {Object.keys(INSTRUMENTS).map((s) => (
+              <button
+                key={s}
+                className={s === symbol ? "sym on" : "sym"}
+                onClick={() => {
+                  setSymbol(s);
+                  setPrice(INSTRUMENTS[s].mid);
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
 
-**Symptom:** after confirming an IME composition, the next keystroke silently
-wipes the composed text, or characters land in the wrong styled run.
+        <span className="field-label">Limit price</span>
+        <PipPriceInput
+          key={symbol}
+          value={price}
+          pipDecimal={cfg.pipDecimal}
+          onChange={setPrice}
+          onCommit={(v) => setLog(`Committed ${symbol} @ ${v}`)}
+        />
 
-**Cause:** the browser wrote text React never rendered, so React's virtual tree
-is stale. If a subsequent render produces a run whose text is unchanged *from
-React's point of view*, React skips the DOM write and the stale browser-written
-text survives.
-
-**Fix:** keep a counter that increments on composition commit and include it in
-the `key` of each styled run. A changed key remounts the runs, guaranteeing React
-re-owns the DOM. This is cheap — a handful of elements — and it runs only on
-composition commit, not on every keystroke.
-
-```js
-const [revision, resync] = useReducer((n) => n + 1, 0);
-// ...
-<span key={`a-${revision}`} className="run-a">{parts.a}</span>
-```
-
-Consider making this general rather than composition-specific: an `input`
-listener that compares `el.textContent` against `value` and calls `resync()` when
-they differ will also recover from any non-cancelable `beforeinput` that slips
-through.
-
----
-
-## Fix 7 — external updates during composition
-
-**Symptom:** a value pushed from outside — a "reset" button, a live feed, a
-parent re-render — corrupts the field or kills the IME while the user is typing.
-
-**Cause:** React rewrites the runs, destroying the composition node underneath
-the input method.
-
-**Fix:** park incoming external values while composing and drain them when the
-composition commits.
-
-```js
-useEffect(() => {
-  if (isComposing.current) { pendingExternal.current = valueProp; return; }
-  // apply normally
-}, [valueProp]);
-```
-
-Drain `pendingExternal` at the end of the same `requestAnimationFrame` callback
-that handles the commit.
-
----
-
-## Fix 8 — if the editable element is a `<button>`, replace it
-
-If `contentEditable` is on a `<button>` (or anything with `role="button"`), that
-is a separate bug and must be fixed:
-
-- Space and Enter activate a button. Space cannot be typed into it, and Enter
-  fires the click handler — compounding Fix 3a.
-- Without `type="button"` inside a form, Enter submits the form.
-- Assistive technology announces it as a button, not an editable field, so the
-  content is unreachable and unannounced for screen reader users.
-
-Replace with a neutral element carrying the right semantics:
-
-```jsx
-<div
-  contentEditable
-  suppressContentEditableWarning
-  role="textbox"
-  aria-label="..."
-  tabIndex={0}
-  inputMode="decimal"      // numeric fields: surfaces a keypad, avoids IME
-  spellCheck={false}
-  autoCorrect="off"
-  autoCapitalize="off"
-/>
-```
-
-Preserve whatever click-target styling the button provided. If any code queries
-for `button` selectors or relies on button-specific behavior, update it too.
-
----
-
-## Constraints
-
-- Do not change the component's public props or its controlled/uncontrolled
-  contract without flagging it first.
-- Keep existing tests passing; add unit tests for the extracted pure reducer.
-- Do not introduce a rich-text editor dependency for this.
-- Native undo will not survive this change, since every edit is `preventDefault`ed.
-  If Cmd+Z matters here, say so and implement a small value stack in a ref handled
-  through the `historyUndo` / `historyRedo` inputTypes — do not silently drop it.
-
----
-
-## Verification
-
-Report results for each. Automated tests will not catch most of these; they need
-a real browser and real input methods.
-
-| # | Scenario | Expected |
-|---|---|---|
-| 1 | Type through the field character by character | Styling never flips to plain; caret never jumps |
-| 2 | macOS Japanese (hiragana), compose and confirm with Enter | Candidate confirms; submit does **not** fire |
-| 3 | macOS Japanese full-width alphanumeric, type digits | Digits accepted and folded to ASCII |
-| 4 | Chinese Pinyin and Korean 2-set, compose and confirm | Same as 2 |
-| 5 | Backspace mid-composition | Deletes one composing character, does not clear the field |
-| 6 | Escape mid-composition | Cancels composition; does not close the surrounding dialog |
-| 7 | Android GBoard, ordinary typing | No duplicated or dropped characters |
-| 8 | iOS Safari with autocorrect and dictation | No injected markup |
-| 9 | Select all, then Delete | Field clears; no console error; styled runs still present |
-| 10 | Paste from Excel (trailing tab), and paste styled HTML | Plain text only, correctly sanitized |
-| 11 | Cmd/Ctrl+B, Cmd+I while focused | No formatting markup inserted |
-| 12 | Push an external value update mid-composition | IME unaffected; value applied after commit |
-| 13 | VoiceOver or NVDA | Announced as an editable text field with its label |
-| 14 | Insert a character in the middle of existing text | Caret stays put, does not jump to the end |
+        <div className="meta">
+          <span>Mid {cfg.mid}</span>
+          <span>↑↓ 1 pip · ⇧↑↓ 0.1 pip</span>
+        </div>
+        <div className="log">{log}</div>
+      </div>
+    </div>
+  );
+}
