@@ -1,0 +1,430 @@
+/* diagram-guide base styles.
+   Every colour, font and size comes from theme.css; edit values there, not here.
+   Generated class list: t, ts, th, box, shape, node, arr, leader,
+   c-{ramp} and c-{ramp}-2 for purple, teal, coral, pink, gray, blue, green, amber, red. */
+
+:root {
+  --p: var(--text-primary);
+  --s: var(--text-secondary);
+  --t: var(--text-muted);
+  --bg2: var(--surface-1);
+  --b: var(--border);
+}
+
+html { background: var(--surface-0); color: var(--text-primary); }
+body { margin: 0; font: 400 16px/1.7 var(--font-sans); }
+.frame { width: 680px; max-width: calc(100% - 32px); margin: 16px auto 32px; }
+.mode-bar { width: 680px; max-width: calc(100% - 32px); margin: 16px auto 0; display: flex; justify-content: flex-end; }
+h1 { font-size: 22px; font-weight: 500; }
+h2 { font-size: 18px; font-weight: 500; }
+h3 { font-size: 16px; font-weight: 500; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* SVG text */
+.t { font: 400 14px var(--font-sans); fill: var(--text-primary); }
+.ts { font: 400 12px var(--font-sans); fill: var(--text-secondary); }
+.th { font: 500 14px var(--font-sans); fill: var(--text-primary); }
+
+/* SVG shapes and lines */
+.box { fill: var(--surface-1); stroke: var(--border-strong); }
+.shape { fill: var(--surface-1); stroke: var(--border-stronger); stroke-width: 1; }
+.node { cursor: pointer; }
+.node:hover { opacity: 0.85; }
+.arr { stroke: var(--text-secondary); stroke-width: 1.5; fill: none; }
+.leader { stroke: var(--text-muted); stroke-width: 0.5; stroke-dasharray: 3 3; fill: none; }
+
+/* Form controls */
+button {
+  font: 400 14px var(--font-sans); color: var(--text-primary); background: transparent;
+  border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 6px 12px; cursor: pointer;
+}
+button:hover { background: var(--surface-1); }
+button:active { transform: scale(0.98); }
+input[type="text"], input[type="number"], select, textarea {
+  font: 400 14px var(--font-sans); color: var(--text-primary); background: var(--surface-2);
+  border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 0 10px;
+}
+input[type="text"], input[type="number"], select { height: 36px; }
+input[type="range"] { accent-color: var(--text-accent); }
+:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--border-accent); }
+
+/* Colour ramps: c-{ramp} = light 50 fill, 600 stroke, 800 title, 600 subtitle;
+   dark 800 fill, 200 stroke, 100 title, 200 subtitle.
+   c-{ramp}-2 = one step deeper, for regions nested inside a c-{ramp} container. */
+/* purple */
+.c-purple > rect,
+rect.c-purple,
+.c-purple > circle,
+circle.c-purple,
+.c-purple > ellipse,
+ellipse.c-purple,
+.c-purple > polygon,
+polygon.c-purple { fill: var(--purple-50); stroke: var(--purple-600); }
+.c-purple > .th, .c-purple > .t { fill: var(--purple-800); }
+.c-purple > .ts { fill: var(--purple-600); }
+[data-mode="dark"] .c-purple > rect,
+[data-mode="dark"] rect.c-purple,
+[data-mode="dark"] .c-purple > circle,
+[data-mode="dark"] circle.c-purple,
+[data-mode="dark"] .c-purple > ellipse,
+[data-mode="dark"] ellipse.c-purple,
+[data-mode="dark"] .c-purple > polygon,
+[data-mode="dark"] polygon.c-purple { fill: var(--purple-800); stroke: var(--purple-200); }
+[data-mode="dark"] .c-purple > .th, [data-mode="dark"] .c-purple > .t { fill: var(--purple-100); }
+[data-mode="dark"] .c-purple > .ts { fill: var(--purple-200); }
+.c-purple-2 > rect,
+rect.c-purple-2,
+.c-purple-2 > circle,
+circle.c-purple-2,
+.c-purple-2 > ellipse,
+ellipse.c-purple-2,
+.c-purple-2 > polygon,
+polygon.c-purple-2 { fill: var(--purple-100); stroke: var(--purple-600); }
+.c-purple-2 > .th, .c-purple-2 > .t { fill: var(--purple-900); }
+.c-purple-2 > .ts { fill: var(--purple-800); }
+[data-mode="dark"] .c-purple-2 > rect,
+[data-mode="dark"] rect.c-purple-2,
+[data-mode="dark"] .c-purple-2 > circle,
+[data-mode="dark"] circle.c-purple-2,
+[data-mode="dark"] .c-purple-2 > ellipse,
+[data-mode="dark"] ellipse.c-purple-2,
+[data-mode="dark"] .c-purple-2 > polygon,
+[data-mode="dark"] polygon.c-purple-2 { fill: var(--purple-900); stroke: var(--purple-400); }
+[data-mode="dark"] .c-purple-2 > .th, [data-mode="dark"] .c-purple-2 > .t { fill: var(--purple-100); }
+[data-mode="dark"] .c-purple-2 > .ts { fill: var(--purple-200); }
+
+/* teal */
+.c-teal > rect,
+rect.c-teal,
+.c-teal > circle,
+circle.c-teal,
+.c-teal > ellipse,
+ellipse.c-teal,
+.c-teal > polygon,
+polygon.c-teal { fill: var(--teal-50); stroke: var(--teal-600); }
+.c-teal > .th, .c-teal > .t { fill: var(--teal-800); }
+.c-teal > .ts { fill: var(--teal-600); }
+[data-mode="dark"] .c-teal > rect,
+[data-mode="dark"] rect.c-teal,
+[data-mode="dark"] .c-teal > circle,
+[data-mode="dark"] circle.c-teal,
+[data-mode="dark"] .c-teal > ellipse,
+[data-mode="dark"] ellipse.c-teal,
+[data-mode="dark"] .c-teal > polygon,
+[data-mode="dark"] polygon.c-teal { fill: var(--teal-800); stroke: var(--teal-200); }
+[data-mode="dark"] .c-teal > .th, [data-mode="dark"] .c-teal > .t { fill: var(--teal-100); }
+[data-mode="dark"] .c-teal > .ts { fill: var(--teal-200); }
+.c-teal-2 > rect,
+rect.c-teal-2,
+.c-teal-2 > circle,
+circle.c-teal-2,
+.c-teal-2 > ellipse,
+ellipse.c-teal-2,
+.c-teal-2 > polygon,
+polygon.c-teal-2 { fill: var(--teal-100); stroke: var(--teal-600); }
+.c-teal-2 > .th, .c-teal-2 > .t { fill: var(--teal-900); }
+.c-teal-2 > .ts { fill: var(--teal-800); }
+[data-mode="dark"] .c-teal-2 > rect,
+[data-mode="dark"] rect.c-teal-2,
+[data-mode="dark"] .c-teal-2 > circle,
+[data-mode="dark"] circle.c-teal-2,
+[data-mode="dark"] .c-teal-2 > ellipse,
+[data-mode="dark"] ellipse.c-teal-2,
+[data-mode="dark"] .c-teal-2 > polygon,
+[data-mode="dark"] polygon.c-teal-2 { fill: var(--teal-900); stroke: var(--teal-400); }
+[data-mode="dark"] .c-teal-2 > .th, [data-mode="dark"] .c-teal-2 > .t { fill: var(--teal-100); }
+[data-mode="dark"] .c-teal-2 > .ts { fill: var(--teal-200); }
+
+/* coral */
+.c-coral > rect,
+rect.c-coral,
+.c-coral > circle,
+circle.c-coral,
+.c-coral > ellipse,
+ellipse.c-coral,
+.c-coral > polygon,
+polygon.c-coral { fill: var(--coral-50); stroke: var(--coral-600); }
+.c-coral > .th, .c-coral > .t { fill: var(--coral-800); }
+.c-coral > .ts { fill: var(--coral-600); }
+[data-mode="dark"] .c-coral > rect,
+[data-mode="dark"] rect.c-coral,
+[data-mode="dark"] .c-coral > circle,
+[data-mode="dark"] circle.c-coral,
+[data-mode="dark"] .c-coral > ellipse,
+[data-mode="dark"] ellipse.c-coral,
+[data-mode="dark"] .c-coral > polygon,
+[data-mode="dark"] polygon.c-coral { fill: var(--coral-800); stroke: var(--coral-200); }
+[data-mode="dark"] .c-coral > .th, [data-mode="dark"] .c-coral > .t { fill: var(--coral-100); }
+[data-mode="dark"] .c-coral > .ts { fill: var(--coral-200); }
+.c-coral-2 > rect,
+rect.c-coral-2,
+.c-coral-2 > circle,
+circle.c-coral-2,
+.c-coral-2 > ellipse,
+ellipse.c-coral-2,
+.c-coral-2 > polygon,
+polygon.c-coral-2 { fill: var(--coral-100); stroke: var(--coral-600); }
+.c-coral-2 > .th, .c-coral-2 > .t { fill: var(--coral-900); }
+.c-coral-2 > .ts { fill: var(--coral-800); }
+[data-mode="dark"] .c-coral-2 > rect,
+[data-mode="dark"] rect.c-coral-2,
+[data-mode="dark"] .c-coral-2 > circle,
+[data-mode="dark"] circle.c-coral-2,
+[data-mode="dark"] .c-coral-2 > ellipse,
+[data-mode="dark"] ellipse.c-coral-2,
+[data-mode="dark"] .c-coral-2 > polygon,
+[data-mode="dark"] polygon.c-coral-2 { fill: var(--coral-900); stroke: var(--coral-400); }
+[data-mode="dark"] .c-coral-2 > .th, [data-mode="dark"] .c-coral-2 > .t { fill: var(--coral-100); }
+[data-mode="dark"] .c-coral-2 > .ts { fill: var(--coral-200); }
+
+/* pink */
+.c-pink > rect,
+rect.c-pink,
+.c-pink > circle,
+circle.c-pink,
+.c-pink > ellipse,
+ellipse.c-pink,
+.c-pink > polygon,
+polygon.c-pink { fill: var(--pink-50); stroke: var(--pink-600); }
+.c-pink > .th, .c-pink > .t { fill: var(--pink-800); }
+.c-pink > .ts { fill: var(--pink-600); }
+[data-mode="dark"] .c-pink > rect,
+[data-mode="dark"] rect.c-pink,
+[data-mode="dark"] .c-pink > circle,
+[data-mode="dark"] circle.c-pink,
+[data-mode="dark"] .c-pink > ellipse,
+[data-mode="dark"] ellipse.c-pink,
+[data-mode="dark"] .c-pink > polygon,
+[data-mode="dark"] polygon.c-pink { fill: var(--pink-800); stroke: var(--pink-200); }
+[data-mode="dark"] .c-pink > .th, [data-mode="dark"] .c-pink > .t { fill: var(--pink-100); }
+[data-mode="dark"] .c-pink > .ts { fill: var(--pink-200); }
+.c-pink-2 > rect,
+rect.c-pink-2,
+.c-pink-2 > circle,
+circle.c-pink-2,
+.c-pink-2 > ellipse,
+ellipse.c-pink-2,
+.c-pink-2 > polygon,
+polygon.c-pink-2 { fill: var(--pink-100); stroke: var(--pink-600); }
+.c-pink-2 > .th, .c-pink-2 > .t { fill: var(--pink-900); }
+.c-pink-2 > .ts { fill: var(--pink-800); }
+[data-mode="dark"] .c-pink-2 > rect,
+[data-mode="dark"] rect.c-pink-2,
+[data-mode="dark"] .c-pink-2 > circle,
+[data-mode="dark"] circle.c-pink-2,
+[data-mode="dark"] .c-pink-2 > ellipse,
+[data-mode="dark"] ellipse.c-pink-2,
+[data-mode="dark"] .c-pink-2 > polygon,
+[data-mode="dark"] polygon.c-pink-2 { fill: var(--pink-900); stroke: var(--pink-400); }
+[data-mode="dark"] .c-pink-2 > .th, [data-mode="dark"] .c-pink-2 > .t { fill: var(--pink-100); }
+[data-mode="dark"] .c-pink-2 > .ts { fill: var(--pink-200); }
+
+/* gray */
+.c-gray > rect,
+rect.c-gray,
+.c-gray > circle,
+circle.c-gray,
+.c-gray > ellipse,
+ellipse.c-gray,
+.c-gray > polygon,
+polygon.c-gray { fill: var(--gray-50); stroke: var(--gray-600); }
+.c-gray > .th, .c-gray > .t { fill: var(--gray-800); }
+.c-gray > .ts { fill: var(--gray-600); }
+[data-mode="dark"] .c-gray > rect,
+[data-mode="dark"] rect.c-gray,
+[data-mode="dark"] .c-gray > circle,
+[data-mode="dark"] circle.c-gray,
+[data-mode="dark"] .c-gray > ellipse,
+[data-mode="dark"] ellipse.c-gray,
+[data-mode="dark"] .c-gray > polygon,
+[data-mode="dark"] polygon.c-gray { fill: var(--gray-800); stroke: var(--gray-200); }
+[data-mode="dark"] .c-gray > .th, [data-mode="dark"] .c-gray > .t { fill: var(--gray-100); }
+[data-mode="dark"] .c-gray > .ts { fill: var(--gray-200); }
+.c-gray-2 > rect,
+rect.c-gray-2,
+.c-gray-2 > circle,
+circle.c-gray-2,
+.c-gray-2 > ellipse,
+ellipse.c-gray-2,
+.c-gray-2 > polygon,
+polygon.c-gray-2 { fill: var(--gray-100); stroke: var(--gray-600); }
+.c-gray-2 > .th, .c-gray-2 > .t { fill: var(--gray-900); }
+.c-gray-2 > .ts { fill: var(--gray-800); }
+[data-mode="dark"] .c-gray-2 > rect,
+[data-mode="dark"] rect.c-gray-2,
+[data-mode="dark"] .c-gray-2 > circle,
+[data-mode="dark"] circle.c-gray-2,
+[data-mode="dark"] .c-gray-2 > ellipse,
+[data-mode="dark"] ellipse.c-gray-2,
+[data-mode="dark"] .c-gray-2 > polygon,
+[data-mode="dark"] polygon.c-gray-2 { fill: var(--gray-900); stroke: var(--gray-400); }
+[data-mode="dark"] .c-gray-2 > .th, [data-mode="dark"] .c-gray-2 > .t { fill: var(--gray-100); }
+[data-mode="dark"] .c-gray-2 > .ts { fill: var(--gray-200); }
+
+/* blue */
+.c-blue > rect,
+rect.c-blue,
+.c-blue > circle,
+circle.c-blue,
+.c-blue > ellipse,
+ellipse.c-blue,
+.c-blue > polygon,
+polygon.c-blue { fill: var(--blue-50); stroke: var(--blue-600); }
+.c-blue > .th, .c-blue > .t { fill: var(--blue-800); }
+.c-blue > .ts { fill: var(--blue-600); }
+[data-mode="dark"] .c-blue > rect,
+[data-mode="dark"] rect.c-blue,
+[data-mode="dark"] .c-blue > circle,
+[data-mode="dark"] circle.c-blue,
+[data-mode="dark"] .c-blue > ellipse,
+[data-mode="dark"] ellipse.c-blue,
+[data-mode="dark"] .c-blue > polygon,
+[data-mode="dark"] polygon.c-blue { fill: var(--blue-800); stroke: var(--blue-200); }
+[data-mode="dark"] .c-blue > .th, [data-mode="dark"] .c-blue > .t { fill: var(--blue-100); }
+[data-mode="dark"] .c-blue > .ts { fill: var(--blue-200); }
+.c-blue-2 > rect,
+rect.c-blue-2,
+.c-blue-2 > circle,
+circle.c-blue-2,
+.c-blue-2 > ellipse,
+ellipse.c-blue-2,
+.c-blue-2 > polygon,
+polygon.c-blue-2 { fill: var(--blue-100); stroke: var(--blue-600); }
+.c-blue-2 > .th, .c-blue-2 > .t { fill: var(--blue-900); }
+.c-blue-2 > .ts { fill: var(--blue-800); }
+[data-mode="dark"] .c-blue-2 > rect,
+[data-mode="dark"] rect.c-blue-2,
+[data-mode="dark"] .c-blue-2 > circle,
+[data-mode="dark"] circle.c-blue-2,
+[data-mode="dark"] .c-blue-2 > ellipse,
+[data-mode="dark"] ellipse.c-blue-2,
+[data-mode="dark"] .c-blue-2 > polygon,
+[data-mode="dark"] polygon.c-blue-2 { fill: var(--blue-900); stroke: var(--blue-400); }
+[data-mode="dark"] .c-blue-2 > .th, [data-mode="dark"] .c-blue-2 > .t { fill: var(--blue-100); }
+[data-mode="dark"] .c-blue-2 > .ts { fill: var(--blue-200); }
+
+/* green */
+.c-green > rect,
+rect.c-green,
+.c-green > circle,
+circle.c-green,
+.c-green > ellipse,
+ellipse.c-green,
+.c-green > polygon,
+polygon.c-green { fill: var(--green-50); stroke: var(--green-600); }
+.c-green > .th, .c-green > .t { fill: var(--green-800); }
+.c-green > .ts { fill: var(--green-600); }
+[data-mode="dark"] .c-green > rect,
+[data-mode="dark"] rect.c-green,
+[data-mode="dark"] .c-green > circle,
+[data-mode="dark"] circle.c-green,
+[data-mode="dark"] .c-green > ellipse,
+[data-mode="dark"] ellipse.c-green,
+[data-mode="dark"] .c-green > polygon,
+[data-mode="dark"] polygon.c-green { fill: var(--green-800); stroke: var(--green-200); }
+[data-mode="dark"] .c-green > .th, [data-mode="dark"] .c-green > .t { fill: var(--green-100); }
+[data-mode="dark"] .c-green > .ts { fill: var(--green-200); }
+.c-green-2 > rect,
+rect.c-green-2,
+.c-green-2 > circle,
+circle.c-green-2,
+.c-green-2 > ellipse,
+ellipse.c-green-2,
+.c-green-2 > polygon,
+polygon.c-green-2 { fill: var(--green-100); stroke: var(--green-600); }
+.c-green-2 > .th, .c-green-2 > .t { fill: var(--green-900); }
+.c-green-2 > .ts { fill: var(--green-800); }
+[data-mode="dark"] .c-green-2 > rect,
+[data-mode="dark"] rect.c-green-2,
+[data-mode="dark"] .c-green-2 > circle,
+[data-mode="dark"] circle.c-green-2,
+[data-mode="dark"] .c-green-2 > ellipse,
+[data-mode="dark"] ellipse.c-green-2,
+[data-mode="dark"] .c-green-2 > polygon,
+[data-mode="dark"] polygon.c-green-2 { fill: var(--green-900); stroke: var(--green-400); }
+[data-mode="dark"] .c-green-2 > .th, [data-mode="dark"] .c-green-2 > .t { fill: var(--green-100); }
+[data-mode="dark"] .c-green-2 > .ts { fill: var(--green-200); }
+
+/* amber */
+.c-amber > rect,
+rect.c-amber,
+.c-amber > circle,
+circle.c-amber,
+.c-amber > ellipse,
+ellipse.c-amber,
+.c-amber > polygon,
+polygon.c-amber { fill: var(--amber-50); stroke: var(--amber-600); }
+.c-amber > .th, .c-amber > .t { fill: var(--amber-800); }
+.c-amber > .ts { fill: var(--amber-600); }
+[data-mode="dark"] .c-amber > rect,
+[data-mode="dark"] rect.c-amber,
+[data-mode="dark"] .c-amber > circle,
+[data-mode="dark"] circle.c-amber,
+[data-mode="dark"] .c-amber > ellipse,
+[data-mode="dark"] ellipse.c-amber,
+[data-mode="dark"] .c-amber > polygon,
+[data-mode="dark"] polygon.c-amber { fill: var(--amber-800); stroke: var(--amber-200); }
+[data-mode="dark"] .c-amber > .th, [data-mode="dark"] .c-amber > .t { fill: var(--amber-100); }
+[data-mode="dark"] .c-amber > .ts { fill: var(--amber-200); }
+.c-amber-2 > rect,
+rect.c-amber-2,
+.c-amber-2 > circle,
+circle.c-amber-2,
+.c-amber-2 > ellipse,
+ellipse.c-amber-2,
+.c-amber-2 > polygon,
+polygon.c-amber-2 { fill: var(--amber-100); stroke: var(--amber-600); }
+.c-amber-2 > .th, .c-amber-2 > .t { fill: var(--amber-900); }
+.c-amber-2 > .ts { fill: var(--amber-800); }
+[data-mode="dark"] .c-amber-2 > rect,
+[data-mode="dark"] rect.c-amber-2,
+[data-mode="dark"] .c-amber-2 > circle,
+[data-mode="dark"] circle.c-amber-2,
+[data-mode="dark"] .c-amber-2 > ellipse,
+[data-mode="dark"] ellipse.c-amber-2,
+[data-mode="dark"] .c-amber-2 > polygon,
+[data-mode="dark"] polygon.c-amber-2 { fill: var(--amber-900); stroke: var(--amber-400); }
+[data-mode="dark"] .c-amber-2 > .th, [data-mode="dark"] .c-amber-2 > .t { fill: var(--amber-100); }
+[data-mode="dark"] .c-amber-2 > .ts { fill: var(--amber-200); }
+
+/* red */
+.c-red > rect,
+rect.c-red,
+.c-red > circle,
+circle.c-red,
+.c-red > ellipse,
+ellipse.c-red,
+.c-red > polygon,
+polygon.c-red { fill: var(--red-50); stroke: var(--red-600); }
+.c-red > .th, .c-red > .t { fill: var(--red-800); }
+.c-red > .ts { fill: var(--red-600); }
+[data-mode="dark"] .c-red > rect,
+[data-mode="dark"] rect.c-red,
+[data-mode="dark"] .c-red > circle,
+[data-mode="dark"] circle.c-red,
+[data-mode="dark"] .c-red > ellipse,
+[data-mode="dark"] ellipse.c-red,
+[data-mode="dark"] .c-red > polygon,
+[data-mode="dark"] polygon.c-red { fill: var(--red-800); stroke: var(--red-200); }
+[data-mode="dark"] .c-red > .th, [data-mode="dark"] .c-red > .t { fill: var(--red-100); }
+[data-mode="dark"] .c-red > .ts { fill: var(--red-200); }
+.c-red-2 > rect,
+rect.c-red-2,
+.c-red-2 > circle,
+circle.c-red-2,
+.c-red-2 > ellipse,
+ellipse.c-red-2,
+.c-red-2 > polygon,
+polygon.c-red-2 { fill: var(--red-100); stroke: var(--red-600); }
+.c-red-2 > .th, .c-red-2 > .t { fill: var(--red-900); }
+.c-red-2 > .ts { fill: var(--red-800); }
+[data-mode="dark"] .c-red-2 > rect,
+[data-mode="dark"] rect.c-red-2,
+[data-mode="dark"] .c-red-2 > circle,
+[data-mode="dark"] circle.c-red-2,
+[data-mode="dark"] .c-red-2 > ellipse,
+[data-mode="dark"] ellipse.c-red-2,
+[data-mode="dark"] .c-red-2 > polygon,
+[data-mode="dark"] polygon.c-red-2 { fill: var(--red-900); stroke: var(--red-400); }
+[data-mode="dark"] .c-red-2 > .th, [data-mode="dark"] .c-red-2 > .t { fill: var(--red-100); }
+[data-mode="dark"] .c-red-2 > .ts { fill: var(--red-200); }

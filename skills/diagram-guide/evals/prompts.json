@@ -1,0 +1,50 @@
+[
+  {
+    "id": "1-flowchart",
+    "prompt": "What are the steps in our CI pipeline? A commit is pushed, dependencies are installed and built, tests run, then it deploys to staging if tests pass or notifies the author if they fail.",
+    "expected_type": "Flowchart",
+    "check_args": [],
+    "build_args": [],
+    "look_for": ["Single top-down flow", "Branch uses L-shaped arrows, not diagonals", "Pass and fail colours carry meaning; steps are grey"]
+  },
+  {
+    "id": "2-structural",
+    "prompt": "What's the architecture of our web app? Users hit a load balancer in our VPC, which forwards to three app servers, which talk to a Postgres database with a replica in a private subnet.",
+    "expected_type": "Structural diagram",
+    "check_args": [],
+    "build_args": [],
+    "look_for": ["Containment shown with nested regions", "Nested database uses c-{ramp}-2, not the parent's class", "Regions sized to content, no tall empty boxes"]
+  },
+  {
+    "id": "3-illustrative-hashmap",
+    "prompt": "How does a hash map actually work? I want to see what happens when keys collide.",
+    "expected_type": "Illustrative diagram (interactive)",
+    "check_args": ["--click-all", "#keys button"],
+    "build_args": [],
+    "look_for": ["Spatial metaphor (funnel into buckets), not a flowchart", "User can insert keys and see collisions chain", "Labels on one side with leader lines", "Freeform shapes have a visible outline"]
+  },
+  {
+    "id": "4-stepper-eventloop",
+    "prompt": "Explain how the JavaScript event loop works.",
+    "expected_type": "HTML stepper (cycle)",
+    "check_args": ["--step", "#next:4"],
+    "build_args": [],
+    "look_for": ["Stepper, not a ring", "Next wraps from the last stage to the first", "Each stage shows its own contents"]
+  },
+  {
+    "id": "5-chart-bars",
+    "prompt": "Chart our monthly signups for January to June: 120, 180, 150, 240, 310, 280.",
+    "expected_type": "SVG bar chart",
+    "check_args": ["--hover", "#signups [data-label=\"May\"]"],
+    "build_args": [],
+    "look_for": ["Single hue, no legend for a single series", "Rounded data end, square at baseline", "Tooltip sits above the value label and covers no other bar or label", "Axis labels readable (4.5:1)"]
+  },
+  {
+    "id": "6-erd",
+    "prompt": "Draw the database schema: users write posts, posts have comments. Include primary and foreign keys.",
+    "expected_type": "ERD with bundled Mermaid",
+    "check_args": [],
+    "build_args": ["--mermaid"],
+    "look_for": ["Built with --mermaid so it works offline", "Rounded entity boxes", "Readable in both modes"]
+  }
+]

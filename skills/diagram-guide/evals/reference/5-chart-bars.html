@@ -1,0 +1,71 @@
+<h2 class="sr-only">Bar chart of monthly signups from January to June, rising from 120 to a peak of 310 in May.</h2>
+<div id="signups-wrap" style="position: relative;">
+  <svg id="signups" width="100%" viewBox="0 0 680 300" role="img">
+    <title>Monthly signups, January to June</title>
+    <desc>January 120, February 180, March 150, April 240, May 310, June 280.</desc>
+  </svg>
+  <div role="tooltip" id="signups-tip" style="position: absolute; left: 0; top: 0; pointer-events: none; opacity: 0; white-space: nowrap; background: var(--surface-2); border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 4px 8px; font-size: 12px; line-height: 1.4; color: var(--text-primary);"></div>
+</div>
+<script>
+(() => {
+  const data = [['Jan', 120], ['Feb', 180], ['Mar', 150], ['Apr', 240], ['May', 310], ['Jun', 280]];
+  const unit = 'signups';
+  const W = 680;
+  const plot = { left: 64, right: 640, top: 48, bottom: 260 };
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('signups');
+  const wrap = document.getElementById('signups-wrap');
+  const tip = document.getElementById('signups-tip');
+  const fmt = new Intl.NumberFormat('en-GB');
+
+  const niceStep = (raw) => {
+    const p = 10 ** Math.floor(Math.log10(raw));
+    return [1, 2, 2.5, 5, 10].map((m) => m * p).find((s) => s >= raw);
+  };
+  const peak = Math.max(...data.map(([, v]) => v));
+  const step = niceStep(peak / 4);
+  const max = Math.ceil((peak * 1.05) / step) * step;
+  const y = (v) => plot.bottom - (v / max) * (plot.bottom - plot.top);
+  const band = (plot.right - plot.left) / data.length;
+  const barW = Math.min(24, band * 0.6);
+
+  const add = (tag, attrs, text) => {
+    const node = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+    if (text !== undefined) node.textContent = text;
+    return svg.appendChild(node);
+  };
+
+  for (let t = 0; t <= max; t += step) {
+    const gy = Math.round(y(t) * 10) / 10;
+    add('line', { x1: plot.left, x2: plot.right, y1: gy, y2: gy, stroke: t === 0 ? 'var(--baseline)' : 'var(--grid)', 'stroke-width': 1 });
+    add('text', { class: 'ts', x: plot.left - 10, y: gy, 'text-anchor': 'end', 'dominant-baseline': 'central', style: 'fill: var(--text-muted)' }, fmt.format(t));
+  }
+
+  data.forEach(([label, v], i) => {
+    const cx = plot.left + band * (i + 0.5);
+    const x = cx - barW / 2;
+    const top = y(v);
+    const r = 4;
+    const d = `M${x} ${plot.bottom} V${top + r} Q${x} ${top} ${x + r} ${top} H${x + barW - r} Q${x + barW} ${top} ${x + barW} ${top + r} V${plot.bottom} Z`;
+    const bar = add('path', { d, class: 'mark node', fill: 'var(--series-1)', tabindex: 0, 'data-label': label, 'aria-label': `${label}: ${fmt.format(v)} ${unit}` });
+    add('text', { class: 'ts', x: cx, y: top - 12, 'text-anchor': 'middle', 'dominant-baseline': 'central', style: 'fill: var(--text-primary)' }, fmt.format(v));
+    add('text', { class: 'ts', x: cx, y: plot.bottom + 18, 'text-anchor': 'middle', 'dominant-baseline': 'central', style: 'fill: var(--text-muted)' }, label);
+
+    const show = () => {
+      tip.textContent = `${label}: ${fmt.format(v)} ${unit}`;
+      const scale = svg.getBoundingClientRect().width / W;
+      const left = Math.max(0, Math.min(cx * scale - tip.offsetWidth / 2, wrap.clientWidth - tip.offsetWidth));
+      const above = (top - 22) * scale - tip.offsetHeight;
+      tip.style.left = `${Math.round(left)}px`;
+      tip.style.top = `${Math.round(Math.max(0, above))}px`;
+      tip.style.opacity = 1;
+    };
+    const hide = () => { tip.style.opacity = 0; };
+    bar.addEventListener('mouseenter', show);
+    bar.addEventListener('focus', show);
+    bar.addEventListener('mouseleave', hide);
+    bar.addEventListener('blur', hide);
+  });
+})();
+</script>

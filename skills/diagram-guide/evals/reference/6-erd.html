@@ -1,0 +1,88 @@
+<h2 class="sr-only">Database schema: users write posts, and posts have comments.</h2>
+<style>
+#erd { display: flex; justify-content: center; }
+#erd svg { max-width: 100%; height: auto; }
+#erd svg.erDiagram .divider path { stroke-opacity: 0.5; }
+#erd svg.erDiagram .row-rect-odd path, #erd svg.erDiagram .row-rect-odd rect { fill: var(--surface-2) !important; }
+#erd svg.erDiagram .row-rect-even path, #erd svg.erDiagram .row-rect-even rect { fill: var(--surface-1) !important; }
+#erd svg.erDiagram marker circle { fill: var(--surface-0) !important; }
+#erd svg.erDiagram .row-rect-odd path,
+#erd svg.erDiagram .row-rect-odd rect,
+#erd svg.erDiagram .row-rect-even path,
+#erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+</style>
+<div id="erd"></div>
+<script>
+(() => {
+  const source = `erDiagram
+  direction LR
+  USERS ||--o{ POSTS : writes
+  POSTS ||--o{ COMMENTS : has
+  USERS {
+    uuid id PK
+    string email
+    timestamp created_at
+  }
+  POSTS {
+    uuid id PK
+    uuid user_id FK
+    string title
+  }
+  COMMENTS {
+    uuid id PK
+    uuid post_id FK
+    string body
+  }`;
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  let renders = 0;
+
+  function roundCorners() {
+    document.querySelectorAll('#erd svg.erDiagram .node').forEach((node) => {
+      const first = node.querySelector('path[d]');
+      if (!first) return;
+      const nums = first.getAttribute('d').match(/-?[\d.]+/g)?.map(Number);
+      if (!nums || nums.length < 8) return;
+      const xs = [nums[0], nums[2], nums[4], nums[6]];
+      const ys = [nums[1], nums[3], nums[5], nums[7]];
+      const x = Math.min(...xs), y = Math.min(...ys);
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', x); rect.setAttribute('y', y);
+      rect.setAttribute('width', Math.max(...xs) - x); rect.setAttribute('height', Math.max(...ys) - y);
+      rect.setAttribute('rx', '8');
+      for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+        if (first.hasAttribute(a)) rect.setAttribute(a, first.getAttribute(a));
+      }
+      first.replaceWith(rect);
+    });
+  }
+
+  async function draw() {
+    const dark = document.documentElement.getAttribute('data-mode') === 'dark';
+    const font = css('--font-sans');
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      fontFamily: font,
+      themeVariables: {
+        darkMode: dark,
+        fontSize: '13px',
+        fontFamily: font,
+        background: css('--surface-0'),
+        primaryColor: css('--surface-1'),
+        primaryTextColor: css('--text-primary'),
+        primaryBorderColor: css('--text-muted'),
+        lineColor: css('--text-muted'),
+        textColor: css('--text-secondary'),
+        attributeBackgroundColorOdd: css('--surface-2'),
+        attributeBackgroundColorEven: css('--surface-1'),
+      },
+    });
+    const { svg } = await mermaid.render(`erd-svg-${++renders}`, source);
+    document.getElementById('erd').innerHTML = svg;
+    roundCorners();
+  }
+
+  document.fonts.ready.then(draw);
+  document.addEventListener('modechange', draw);
+})();
+</script>

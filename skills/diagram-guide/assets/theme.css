@@ -1,0 +1,101 @@
+/* diagram-guide theme
+   Fill in every ____ before using the skill. scripts/check.js fails while any
+   value is still blank, and checks text contrast against the surfaces.
+   Text colours need at least 4.5:1 contrast on --surface-0 and --surface-1. */
+
+:root {
+  /* Surfaces */
+  --surface-0: ____;          /* page background */
+  --surface-1: ____;          /* card */
+  --surface-2: ____;          /* raised surface */
+  --bg-accent: ____;
+  --bg-danger: ____;
+  --bg-success: ____;
+  --bg-warning: ____;
+
+  /* Text */
+  --text-primary: ____;       /* main text */
+  --text-secondary: ____;     /* supporting text */
+  --text-muted: ____;         /* hints, axis labels: still needs 4.5:1 */
+  --text-accent: ____;
+  --text-danger: ____;
+  --text-success: ____;
+  --text-warning: ____;
+
+  /* Borders */
+  --border: ____;             /* default hairline */
+  --border-strong: ____;      /* hover, neutral box outline */
+  --border-stronger: ____;    /* freeform shape outline */
+  --border-accent: ____;
+  --border-danger: ____;
+  --border-success: ____;
+  --border-warning: ____;
+
+  /* Typography */
+  --font-sans: ____;
+  --font-voice: ____;         /* serif, for rare editorial moments and hero numbers */
+  --font-mono: ____;
+
+  /* Layout */
+  --radius: ____;
+  --pad-sm: ____; --pad-md: ____; --pad-lg: ____; --pad-xl: ____;
+  --gap-xs: ____; --gap-sm: ____; --gap-md: ____; --gap-lg: ____; --gap-xl: ____;
+
+  /* Charts: categorical series, in this fixed order */
+  --series-1: ____; --series-2: ____; --series-3: ____; --series-4: ____;
+  --series-5: ____; --series-6: ____; --series-7: ____; --series-8: ____;
+  /* Charts: status (always paired with an icon or label) */
+  --status-good: ____; --status-warning: ____; --status-serious: ____; --status-critical: ____;
+  /* Charts: diverging midpoint, gridlines, baseline */
+  --diverging-mid: ____;
+  --grid: ____;
+  --baseline: ____;
+}
+
+[data-mode="dark"] {
+  --surface-0: ____;
+  --surface-1: ____;
+  --surface-2: ____;
+  --bg-accent: ____;
+  --bg-danger: ____;
+  --bg-success: ____;
+  --bg-warning: ____;
+
+  --text-primary: ____;
+  --text-secondary: ____;
+  --text-muted: ____;
+  --text-accent: ____;
+  --text-danger: ____;
+  --text-success: ____;
+  --text-warning: ____;
+
+  --border: ____;
+  --border-strong: ____;
+  --border-stronger: ____;
+  --border-accent: ____;
+  --border-danger: ____;
+  --border-success: ____;
+  --border-warning: ____;
+
+  --series-1: ____; --series-2: ____; --series-3: ____; --series-4: ____;
+  --series-5: ____; --series-6: ____; --series-7: ____; --series-8: ____;
+  --diverging-mid: ____;
+  --grid: ____;
+  --baseline: ____;
+}
+
+/* Colour ramps for the c-{ramp} classes. The same stops are used in both
+   modes; base.css picks which stop each part uses in light and dark.
+   50 = lightest fill, 100-200 = light fills, 400 = mid tone,
+   600 = strong / border, 800-900 = text on light fills. */
+:root {
+  --purple-50: ____; --purple-100: ____; --purple-200: ____; --purple-400: ____; --purple-600: ____; --purple-800: ____; --purple-900: ____;
+  --teal-50: ____;   --teal-100: ____;   --teal-200: ____;   --teal-400: ____;   --teal-600: ____;   --teal-800: ____;   --teal-900: ____;
+  --coral-50: ____;  --coral-100: ____;  --coral-200: ____;  --coral-400: ____;  --coral-600: ____;  --coral-800: ____;  --coral-900: ____;
+  --pink-50: ____;   --pink-100: ____;   --pink-200: ____;   --pink-400: ____;   --pink-600: ____;   --pink-800: ____;   --pink-900: ____;
+  --gray-50: ____;   --gray-100: ____;   --gray-200: ____;   --gray-400: ____;   --gray-600: ____;   --gray-800: ____;   --gray-900: ____;
+  --blue-50: ____;   --blue-100: ____;   --blue-200: ____;   --blue-400: ____;   --blue-600: ____;   --blue-800: ____;   --blue-900: ____;
+  --green-50: ____;  --green-100: ____;  --green-200: ____;  --green-400: ____;  --green-600: ____;  --green-800: ____;  --green-900: ____;
+  --amber-50: ____;  --amber-100: ____;  --amber-200: ____;  --amber-400: ____;  --amber-600: ____;  --amber-800: ____;  --amber-900: ____;
+  --red-50: ____;    --red-100: ____;    --red-200: ____;    --red-400: ____;    --red-600: ____;    --red-800: ____;    --red-900: ____;
+}

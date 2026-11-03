@@ -1,0 +1,53 @@
+<h2 class="sr-only">Step-through of the JavaScript event loop: call stack, microtasks, rendering, then one task from the task queue, repeating.</h2>
+<svg id="stage-svg" width="100%" viewBox="0 0 680 180" role="img">
+  <title id="stage-title">Event loop stage</title>
+  <desc id="stage-desc">The current stage of the event loop and what it holds.</desc>
+  <rect x="40" y="20" width="600" height="130" rx="12" fill="none" stroke="var(--border-strong)" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <text id="stage-name" class="th" x="60" y="46" dominant-baseline="central"></text>
+  <g id="stage-items"></g>
+</svg>
+<p id="stage-text" style="font-size: 14px; color: var(--text-secondary); margin: 8px 0 12px;"></p>
+<div style="display: flex; align-items: center; gap: 12px;">
+  <button id="prev" aria-label="Previous stage">Back</button>
+  <span id="dots" style="font-size: 14px; letter-spacing: 4px; color: var(--text-secondary);"></span>
+  <button id="next" aria-label="Next stage">Next</button>
+</div>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const stages = [
+  { name: 'Call stack', text: 'Runs synchronous code until the stack is empty.', items: ['main()', 'onClick()', 'render()'] },
+  { name: 'Microtasks', text: 'Drains every promise callback before moving on.', items: ['.then(cb)', 'await resume', 'queueMicrotask'] },
+  { name: 'Render', text: 'The browser may paint if a frame is due.', items: ['Style', 'Layout', 'Paint'] },
+  { name: 'Task queue', text: 'Takes one task, then the loop goes back to the call stack.', items: ['setTimeout', 'click event', 'message'] },
+];
+let current = 0;
+const el = (tag, attrs) => {
+  const node = document.createElementNS(NS, tag);
+  Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+  return node;
+};
+
+function show(index) {
+  current = (index + stages.length) % stages.length;
+  const stage = stages[current];
+  document.getElementById('stage-name').textContent = stage.name;
+  document.getElementById('stage-title').textContent = `Event loop stage: ${stage.name}`;
+  document.getElementById('stage-text').textContent = stage.text;
+  const items = document.getElementById('stage-items');
+  items.replaceChildren();
+  stage.items.forEach((label, i) => {
+    const g = el('g', { class: i === 0 ? 'c-amber' : 'c-purple' });
+    const x = 75 + i * 190;
+    g.appendChild(el('rect', { x, y: 74, width: 150, height: 44, rx: 8, 'stroke-width': 0.5 }));
+    const t = el('text', { class: 'th', x: x + 75, y: 96, 'text-anchor': 'middle', 'dominant-baseline': 'central' });
+    t.textContent = label;
+    g.appendChild(t);
+    items.appendChild(g);
+  });
+  document.getElementById('dots').textContent = stages.map((_, i) => (i === current ? '●' : '○')).join('');
+}
+
+document.getElementById('prev').addEventListener('click', () => show(current - 1));
+document.getElementById('next').addEventListener('click', () => show(current + 1));
+show(0);
+</script>

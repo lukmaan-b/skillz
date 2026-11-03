@@ -1,0 +1,4 @@
+skills/diagram-guide/evals/out/
+*.light.png
+*.dark.png
+node_modules/
